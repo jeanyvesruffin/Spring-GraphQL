@@ -26,10 +26,10 @@ mvn spring-boot:run
 | Composant          | Technologie                 | Rôle                                                                 |
 | :----------------- | :-------------------------- | :------------------------------------------------------------------- |
 | **Langage** | **Java 24** | Utilisation des *Virtual Threads* et du *Structured Concurrency*.    |
-| **Framework Pro** | **Spring Boot 3.4+** | Socle de l'application (Spring Data, Spring GraphQL).                |
+| **Framework Pro** | **Spring Boot 4.0.5** | Socle de l'application (Spring Data, Spring GraphQL).                |
 | **Base de Données**| **SQL DB2** | Gestion transactionnelle des scores, paris et classements.           |
 | **API** | **Spring GraphQL** | Interface flexible pour consommer uniquement les stats nécessaires.  |
-| **Frontend** | **Angular 19+** | Interface réactive utilisant les *Signals* pour les scores en direct.|
+| **Frontend** | **Angular 21** | Interface réactive utilisant les *Signals* pour les scores en direct.|
 
 ---
 
