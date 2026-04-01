@@ -7,11 +7,13 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import ruffinjy.spring_graphql.dtos.CreateSimulationInputDto;
 import ruffinjy.spring_graphql.dtos.SimulationConfigInputDto;
+import ruffinjy.spring_graphql.dtos.SimulationFilterInputDto;
 import ruffinjy.spring_graphql.dtos.SimulationProgressDto;
 import ruffinjy.spring_graphql.entities.Simulation;
 import ruffinjy.spring_graphql.entities.SimulationResult;
 import ruffinjy.spring_graphql.entities.enums.SimulationStatus;
 import ruffinjy.spring_graphql.repositories.SimulationRepository;
+import ruffinjy.spring_graphql.specs.SimulationSpecifications;
 
 import java.time.LocalDateTime;
 import java.util.NoSuchElementException;
@@ -43,6 +45,13 @@ public class SimulationService {
             return simulationRepository.findAll(pageable);
         }
         return simulationRepository.findAll((simulationRoot, criteriaQuery, criteriaBuilder) -> criteriaBuilder.equal(simulationRoot.get("status"), simulationStatus), pageable);
+    }
+
+    public Page<Simulation> findSimulationsByFilter(SimulationFilterInputDto filter, int page, int size) {
+        int maxPage = Math.max(0, page);
+        int maxSize = Math.max(1, size);
+        Pageable pageable = PageRequest.of(maxPage, maxSize, Sort.by("createdAt").descending());
+        return simulationRepository.findAll(SimulationSpecifications.withFilter(filter), pageable);
     }
 
     public Simulation createSimulation(CreateSimulationInputDto createSimulationInputDto) {

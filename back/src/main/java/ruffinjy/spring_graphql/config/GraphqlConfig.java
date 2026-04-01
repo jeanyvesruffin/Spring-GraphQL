@@ -2,14 +2,12 @@ package ruffinjy.spring_graphql.config;
 
 import graphql.scalars.ExtendedScalars;
 import org.dataloader.DataLoader;
+import org.dataloader.DataLoaderFactory;
 import org.dataloader.DataLoaderRegistry;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.graphql.execution.RuntimeWiringConfigurer;
 import org.springframework.graphql.server.WebGraphQlInterceptor;
-import org.springframework.graphql.server.WebGraphQlRequest;
-import org.springframework.graphql.server.WebGraphQlResponse;
-import reactor.core.publisher.Mono;
 import ruffinjy.spring_graphql.entities.Widget;
 import ruffinjy.spring_graphql.services.WidgetService;
 
@@ -29,14 +27,14 @@ public class GraphqlConfig {
 
     @Bean
     WebGraphQlInterceptor dataLoaderInterceptor(WidgetService widgetService) {
-        return (request, chain) -> {
-            DataLoaderRegistry registry = new DataLoaderRegistry();
-            DataLoader<String, List<Widget>> loader = DataLoader.newMappedDataLoader((Set<String> keys) ->
-                    CompletableFuture.supplyAsync(() -> widgetService.findByDashboardIds(keys)));
-            registry.register("widgetsByDashboard", loader);
+        return (graphqlRequest, graphqlRequestChain) -> {
+            DataLoaderRegistry dataLoaderRegistry = new DataLoaderRegistry();
+            DataLoader<String, List<Widget>> widgetDataLoader = DataLoaderFactory.newMappedDataLoader((Set<String> dashboardIds) ->
+                    CompletableFuture.supplyAsync(() -> widgetService.findByDashboardIds(dashboardIds)));
+            dataLoaderRegistry.register("widgetsByDashboard", widgetDataLoader);
 
-            request.configureExecutionInput((executionInput, builder) -> builder.dataLoaderRegistry(registry).build());
-            return chain.next(request);
+            graphqlRequest.configureExecutionInput((executionInput, builder) -> builder.dataLoaderRegistry(dataLoaderRegistry).build());
+            return graphqlRequestChain.next(graphqlRequest);
         };
     }
 }

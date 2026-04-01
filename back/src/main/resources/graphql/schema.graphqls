@@ -136,6 +136,14 @@ input MetricInput {
   timestamp: DateTime
 }
 
+input SimulationFilterInput {
+  nameContains: String
+  status: SimulationStatus
+  createdAfter: DateTime
+  minProgress: Float
+  maxProgress: Float
+}
+
 #########################
 # Queries
 #########################
@@ -146,6 +154,9 @@ type Query {
   simulation(id: ID!): Simulation
   simulations(status: SimulationStatus, limit: Int, offset: Int): [Simulation!]!
   simulationsSummary(limit: Int): [SimulationSummary!]!
+
+  # Filtrage dynamique + pagination (page/size)
+  simulationsFiltered(filter: SimulationFilterInput, page: Int, size: Int): [Simulation!]!
 
   metrics(simulationId: ID!, since: DateTime): [Metric!]!
 }

@@ -8,6 +8,7 @@ import org.springframework.graphql.data.method.annotation.SubscriptionMapping;
 import org.springframework.stereotype.Controller;
 import reactor.core.publisher.Flux;
 import ruffinjy.spring_graphql.dtos.CreateSimulationInputDto;
+import ruffinjy.spring_graphql.dtos.SimulationFilterInputDto;
 import ruffinjy.spring_graphql.dtos.SimulationProgressDto;
 import ruffinjy.spring_graphql.dtos.SimulationSummaryDto;
 import ruffinjy.spring_graphql.entities.Simulation;
@@ -33,6 +34,13 @@ public class SimulationController {
     @QueryMapping
     public List<Simulation> simulations(@Argument SimulationStatus status, @Argument Integer offset, @Argument Integer limit) {
         return simulationService.findSimulations(status, offset == null ? 0 : offset, limit == null ? 20 : limit).getContent();
+    }
+
+    @QueryMapping
+    public java.util.List<Simulation> simulationsFiltered(@Argument SimulationFilterInputDto simulationFilter,
+                                                         @Argument Integer page,
+                                                         @Argument Integer size) {
+        return simulationService.findSimulationsByFilter(simulationFilter, page == null ? 0 : page, size == null ? 20 : size).getContent();
     }
 
     @QueryMapping
