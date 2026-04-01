@@ -23,6 +23,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.when;
 
 @GraphQlTest(controllers = SimulationController.class)
@@ -50,8 +51,8 @@ public class SimulationGraphQlTest {
         s.setProgress(0.5);
         s.setCreatedAt(LocalDateTime.now());
 
-        when(simulationService.findSimulationsByFilter(any(SimulationFilterInputDto.class), anyInt(), anyInt()))
-                .thenReturn(new PageImpl<>(List.of(s), PageRequest.of(0, 10), 1));
+        when(simulationService.findSimulationsByFilter(nullable(SimulationFilterInputDto.class), anyInt(), anyInt()))
+            .thenReturn(new PageImpl<>(List.of(s), PageRequest.of(0, 10), 1));
 
         String query = "query($page: Int, $size: Int) { simulationsFiltered(page: $page, size: $size) { id name status progress } }";
 

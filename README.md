@@ -292,3 +292,7 @@ Note : De nombreux outils et bibliothèques (comme Apollo ou Spring Boot GraphQL
     - [SimulationController](back/src/main/java/ruffinjy/spring_graphql/controllers/SimulationController.java)
 6. Création de la configuration graphql
     - [GraphqlConfig](back/src/main/java/ruffinjy/spring_graphql/config/GraphqlConfig.java)
+
+## Accès Graphiql
+
+[http://localhost:8080/graphiql](http://localhost:8080/graphiql)
