@@ -1,5 +1,7 @@
 # Spring-GraphQL
 
+[Documentation fonctionnelle](docs/DOCUMENTATION_FONCTIONNELLE.md)
+
 # Démarrage rapide
 
 ## Compilation
@@ -245,3 +247,48 @@ public class UserService {
     }
 }
 ```
+
+# Spring-GraphQL
+
+## Création des fichiers .graphqls
+
+1. Son rôle principal : Définir le contrat
+Dans l'écosystème GraphQL, l'extension .graphqls est spécifiquement utilisée pour définir le Schema Definition Language (SDL).
+C'est le fichier "architecte" de votre API : il décrit la structure des données sans se soucier de la manière dont elles sont récupérées.
+Le fichier .graphqls sert à déclarer ce que votre API est capable de faire. Il contient la définition des types, des requêtes (Queries), des mutations et des abonnements (Subscriptions).
+
+2. Pourquoi le "s" ? (.graphql vs .graphqls)
+Bien que les deux soient souvent utilisés de manière interchangeable, il existe une nuance conventionnelle :
+
+- .graphql : Souvent utilisé pour les opérations côté client (les requêtes query { ... } que le front-end envoie au serveur).
+- .graphqls : Le "s" signifie Schema. Il est utilisé côté serveur pour définir le schéma global.
+
+Note : De nombreux outils et bibliothèques (comme Apollo ou Spring Boot GraphQL) reconnaissent les deux, mais .graphqls aide les développeurs et les IDE à identifier immédiatement qu'il s'agit de la structure du serveur.
+
+### Implementation
+
+1. Création des `entities` representatives du DSL qraphqls :
+    - [type Dashboard](back/src/main/java/ruffinjy/spring_graphql/entities/Dashboard.java)
+    - [type Simulation](back/src/main/java/ruffinjy/spring_graphql/entities/Simulation.java)
+    - [type SimulationResult](back/src/main/java/ruffinjy/spring_graphql/entities/SimulationResult.java)
+    - [SimulationStatus](back/src/main/java/ruffinjy/spring_graphql/entities/SimulationStatus.java)
+    - [type Widget](back/src/main/java/ruffinjy/spring_graphql/entities/Widget.java)
+    - [enum WidgetType](back/src/main/java/ruffinjy/spring_graphql/entities/WidgetType.java)
+2. Création des `repositories` representatives des entities DSL qraphqls :
+    - [Dashboard repository](back/src/main/java/ruffinjy/spring_graphql/repositories/DashboardRepository.java)
+    - [Simulation repository](back/src/main/java/ruffinjy/spring_graphql/repositories/SimulationRepository.java)
+    - [Widget repository](back/src/main/java/ruffinjy/spring_graphql/repositories/WidgetRepository.java)
+3. Création des `dtos` representatives des entities DSL qraphqls :
+    - [CreateSimulationInputDto](back/src/main/java/ruffinjy/spring_graphql/dtos/CreateSimulationInputDto.java)
+    - [ParameterInputDto](back/src/main/java/ruffinjy/spring_graphql/dtos/ParameterInputDto.java)
+    - [SimulationConfigInputDto](back/src/main/java/ruffinjy/spring_graphql/dtos/SimulationConfigInputDto.java)
+    - [SimulationProgressDto](back/src/main/java/ruffinjy/spring_graphql/dtos/SimulationProgressDto.java)
+    - [SimulationSummaryDto](back/src/main/java/ruffinjy/spring_graphql/dtos/SimulationSummaryDto.java)
+4. Création des `services` :
+    - [SimulationPublisherService](back/src/main/java/ruffinjy/spring_graphql/services/SimulationPublisher.java)
+    - [SimulationService](back/src/main/java/ruffinjy/spring_graphql/services/SimulationService.java)
+    - [WidgetService](back/src/main/java/ruffinjy/spring_graphql/services/WidgetService.java)
+5. Création des `controllers` :
+    - [SimulationController](back/src/main/java/ruffinjy/spring_graphql/controllers/SimulationController.java)
+6. Création de la configuration graphql
+    - [GraphqlConfig](back/src/main/java/ruffinjy/spring_graphql/config/GraphqlConfig.java)

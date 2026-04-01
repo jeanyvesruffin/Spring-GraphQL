@@ -1,0 +1,179 @@
+# Schema GraphQL pour Dashboard & Simulation
+# Emplacement : back/src/main/resources/graphql/
+# - Spring GraphQL charge automatiquement les fichiers `*.graphqls` présents ici.
+# - Scalars non-standards (DateTime, JSON) doivent être enregistrés côté Java (voir README ci-dessous).
+
+scalar DateTime
+scalar JSON
+
+#########################
+# Enums
+#########################
+enum SimulationStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum WidgetType {
+  CHART
+  TABLE
+  KPI
+  TEXT
+}
+
+#########################
+# Types principaux
+#########################
+type Dashboard {
+  id: ID!
+  name: String!
+  description: String
+  widgets: [Widget!]!
+  lastUpdated: DateTime
+}
+
+type Widget {
+  id: ID!
+  dashboardId: ID!
+  type: WidgetType!
+  title: String
+  config: JSON
+  linkedSimulation: SimulationSummary
+}
+
+type SimulationSummary {
+  id: ID!
+  name: String!
+  status: SimulationStatus!
+  progress: Float!
+}
+
+type Simulation {
+  id: ID!
+  name: String!
+  status: SimulationStatus!
+  config: SimulationConfig!
+  createdAt: DateTime!
+  startedAt: DateTime
+  endedAt: DateTime
+  progress: Float
+  results: [SimulationResult!]!
+  metrics: [Metric!]!
+}
+
+type SimulationResult {
+  metric: String!
+  value: Float!
+  timestamp: DateTime!
+}
+
+type Metric {
+  name: String!
+  value: Float!
+  timestamp: DateTime!
+}
+
+type SimulationProgress {
+  simulationId: ID!
+  progress: Float!
+  message: String
+  timestamp: DateTime!
+}
+
+#########################
+# Input / Config
+#########################
+input CreateSimulationInput {
+  name: String!
+  config: SimulationConfigInput!
+}
+
+input SimulationConfigInput {
+  durationSeconds: Int!
+  parameters: [ParameterInput!]
+  seed: Int
+  scenario: String
+}
+
+input ParameterInput {
+  key: String!
+  value: String!
+}
+
+type SimulationConfig {
+  durationSeconds: Int!
+  parameters: [Parameter!]!
+  seed: Int
+  scenario: String
+}
+
+type Parameter {
+  key: String!
+  value: String!
+}
+
+input WidgetInput {
+  id: ID
+  type: WidgetType!
+  title: String
+  config: JSON
+  linkedSimulationId: ID
+}
+
+input UpdateDashboardInput {
+  id: ID!
+  name: String
+  description: String
+  widgets: [WidgetInput!]
+}
+
+input MetricInput {
+  name: String!
+  value: Float!
+  timestamp: DateTime
+}
+
+#########################
+# Queries
+#########################
+type Query {
+  dashboard(id: ID!): Dashboard
+  dashboards: [Dashboard!]!
+
+  simulation(id: ID!): Simulation
+  simulations(status: SimulationStatus, limit: Int, offset: Int): [Simulation!]!
+  simulationsSummary(limit: Int): [SimulationSummary!]!
+
+  metrics(simulationId: ID!, since: DateTime): [Metric!]!
+}
+
+#########################
+# Mutations
+#########################
+type Mutation {
+  createSimulation(input: CreateSimulationInput!): Simulation!
+  startSimulation(id: ID!): Simulation!
+  stopSimulation(id: ID!): Simulation!
+  cancelSimulation(id: ID!): Simulation!
+
+  updateDashboard(input: UpdateDashboardInput!): Dashboard!
+  addWidget(dashboardId: ID!, input: WidgetInput!): Widget!
+  removeWidget(id: ID!): Boolean!
+
+  publishMetric(simulationId: ID!, metric: MetricInput!): Metric!
+}
+
+#########################
+# Subscriptions
+#########################
+type Subscription {
+  simulationProgress(simulationId: ID!): SimulationProgress!
+  simulationCompleted(simulationId: ID!): SimulationResult!
+  metricUpdated(simulationId: ID!): Metric!
+  dashboardUpdated(dashboardId: ID!): Dashboard!
+}
+
+# Fin du schéma
