@@ -58,7 +58,7 @@ public class GraphqlConfig {
                         }
 
                         @Override
-                        public OffsetDateTime parseLiteral(Value input, CoercedVariables variables, GraphQLContext graphQLContext, Locale locale) throws CoercingParseLiteralException {
+                        public OffsetDateTime parseLiteral(Value<?> input, CoercedVariables variables, GraphQLContext graphQLContext, Locale locale) throws CoercingParseLiteralException {
                             if (input instanceof StringValue stringValue) {
                                 String value = stringValue.getValue();
                                 try {
