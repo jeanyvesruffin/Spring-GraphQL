@@ -2,6 +2,12 @@
 
 [Documentation fonctionnelle](docs/DOCUMENTATION_FONCTIONNELLE.md)
 
+[graphql-java](https://www.graphql-java.com/documentation/)
+
+[spring-graphql](https://docs.spring.io/spring-graphql/reference/index.html)
+
+[graphql](https://graphql.org/)
+
 # Démarrage rapide
 
 ## Compilation
@@ -284,15 +290,344 @@ Note : De nombreux outils et bibliothèques (comme Apollo ou Spring Boot GraphQL
     - [SimulationConfigInputDto](back/src/main/java/ruffinjy/spring_graphql/dtos/SimulationConfigInputDto.java)
     - [SimulationProgressDto](back/src/main/java/ruffinjy/spring_graphql/dtos/SimulationProgressDto.java)
     - [SimulationSummaryDto](back/src/main/java/ruffinjy/spring_graphql/dtos/SimulationSummaryDto.java)
+    - [MetricDto](back/src/main/java/ruffinjy/spring_graphql/dtos/MetricDto.java)
+    - [MetricEvent](back/src/main/java/ruffinjy/spring_graphql/dtos/MetricEvent.java)
+    - [MetricInputDto](back/src/main/java/ruffinjy/spring_graphql/dtos/MetricInputDto.java)
+    - [UpdateDashboardInputDto](back/src/main/java/ruffinjy/spring_graphql/dtos/UpdateDashboardInputDto.java)
+    - [WidgetInputDto](back/src/main/java/ruffinjy/spring_graphql/dtos/WidgetInputDto.java)
 4. Création des `services` :
     - [SimulationPublisherService](back/src/main/java/ruffinjy/spring_graphql/services/SimulationPublisher.java)
     - [SimulationService](back/src/main/java/ruffinjy/spring_graphql/services/SimulationService.java)
     - [WidgetService](back/src/main/java/ruffinjy/spring_graphql/services/WidgetService.java)
 5. Création des `controllers` :
     - [SimulationController](back/src/main/java/ruffinjy/spring_graphql/controllers/SimulationController.java)
+    - [DashboardController](back/src/main/java/ruffinjy/spring_graphql/controllers/DashboardController.java)
 6. Création de la configuration graphql
     - [GraphqlConfig](back/src/main/java/ruffinjy/spring_graphql/config/GraphqlConfig.java)
 
 ## Accès Graphiql
 
 [http://localhost:8080/graphiql](http://localhost:8080/graphiql)
+
+## Exemples détaillés
+
+Voici, d'un point de vue fonctionnel, ce que réalisent les requêtes et mutations présentées ci-dessous :
+
+- **Queries (requêtes)** : consultent et retournent des données sans modifier l'état du système. Elles récupèrent des entités (dashboards, simulations, metrics), leurs relations (widgets, résultats) et supportent le filtrage, la pagination et la projection de champs pour limiter la quantité de données transférées.
+- **Mutations** : effectuent des modifications d'état (création, mise à jour, démarrage/arrêt/annulation de simulations, publication de metrics). Elles persistent les changements en base et peuvent déclencher des traitements asynchrones ou des notifications (ex. lancement d'un moteur de simulation).
+- **Subscriptions** : ouvrent un canal temps réel (WebSocket) pour recevoir des événements push (progression, métriques, fin de simulation). Elles reflètent les changements d'état produits par les mutations ou par le moteur de simulation et permettent au frontend d'afficher des mises à jour en direct.
+- **Conséquences métier** : par exemple, `createSimulation` crée une `Simulation` et peut lancer un processus asynchrone qui publie des métriques et une progression ; `startSimulation` change le statut en `RUNNING` et déclenche des mises à jour observables par l'UI.
+- **Optimisations** : DataLoader, pagination et projection de champs réduisent le nombre d'appels et la charge mémoire/IO pour les listes et relations complexes.
+
+### Lister tous les dashboards
+ 
+Fonctionnel : récupère la liste des dashboards avec leurs widgets et métadonnées (`lastUpdated`). Utilisée pour afficher la vue d'ensemble côté client ; opération en lecture seule (n'affecte pas l'état serveur). Penser à paginer pour de grands jeux de données.
+
+```graphql
+query {
+  dashboards {
+    id
+    name
+    description
+    widgets { id title type linkedSimulation { id name status progress } }
+    lastUpdated
+  }
+}
+```
+
+### Récupérer un dashboard par ID
+ 
+Fonctionnel : retourne les données complètes d'un dashboard identifié par `id`. Utile pour la page détail ou l'édition ; renvoie `null`/erreur si l'ID n'existe pas.
+
+```graphql
+query GetDashboard($id: ID!) {
+  dashboard(id: $id) {
+    id name description widgets { id title type }
+  }
+}
+```
+
+Variables:
+
+```json
+{ "id": "1" }
+```
+
+### Lister toutes les simulations (inline)
+ 
+Fonctionnel : liste des simulations filtrables (par `status`) et paginables ; peut inclure les `results` lorsque demandés. À utiliser pour vues d'administration/monitoring. Attention au volume si les `results` sont retournés.
+
+```graphql
+query {
+  simulations(status: COMPLETED, limit: 10, offset: 0) {
+    id name status progress createdAt startedAt endedAt
+    results { metric value timestamp }
+  }
+}
+```
+
+### Lister les simulations (avec variables)
+ 
+Fonctionnel : même principe que l'exemple inline, mais paramétrable via des variables GraphQL pour réutilisation côté client et prévention d'injections. Permet de contrôler `status`, `limit` et `offset` sans modifier la requête.
+
+```graphql
+query ListSims($status: SimulationStatus, $limit: Int, $offset: Int) {
+  simulations(status: $status, limit: $limit, offset: $offset) {
+    id name status progress
+  }
+}
+```
+
+Variables:
+
+```json
+{ "status": "COMPLETED", "limit": 10, "offset": 0 }
+```
+
+### Requête paginée/filtrée (simulationsFiltered)
+ 
+Fonctionnel : applique un filtrage côté serveur (nom, statut, plage de progression) et renvoie une page de résultats (`page`, `size`). Conçu pour supporter recherches complexes sans charger l'ensemble des données.
+
+```graphql
+query FilteredSims($filter: SimulationFilterInput, $page: Int, $size: Int) {
+  simulationsFiltered(filter: $filter, page: $page, size: $size) {
+    id name status progress
+  }
+}
+```
+
+Variables:
+
+```json
+{
+  "filter": {
+    "nameContains": "Quick",
+    "status": "RUNNING",
+    "minProgress": 0.0,
+    "maxProgress": 50.0
+  },
+  "page": 0,
+  "size": 20
+}
+```
+
+### Récupérer une simulation par ID
+ 
+Fonctionnel : récupère les détails d'une simulation identifiée (`config`, `progress`, `results`). Utile pour la page détail et pour initialiser des abonnements temps réel liés à cette simulation.
+
+```graphql
+query GetSimulation($id: ID!) {
+  simulation(id: $id) {
+    id name status config { durationSeconds scenario }
+    progress results { metric value }
+  }
+}
+```
+
+Variables:
+
+```json
+{ "id": "123" }
+```
+
+### Créer une simulation (mutation)
+ 
+Fonctionnel : crée une nouvelle `Simulation` persistée en base et retourne l'entité créée. Cette mutation peut déclencher un traitement asynchrone (lancement du moteur de simulation) qui produira des métriques et des événements de progression.
+
+Mutation inline:
+
+```graphql
+mutation {
+  createSimulation(input: {
+    name: "QuickSim",
+    config: {
+      durationSeconds: 60,
+      parameters: [{ key: "difficulty", value: "normal" }],
+      seed: 42,
+      scenario: "classic"
+    }
+  }) {
+    id name status progress
+  }
+}
+```
+
+Mutation avec variables:
+
+```graphql
+mutation CreateSim($input: CreateSimulationInput!) {
+  createSimulation(input: $input) {
+    id name status
+  }
+}
+```
+
+Variables:
+
+```json
+{
+  "input": {
+    "name": "QuickSim",
+    "config": {
+      "durationSeconds": 60,
+      "parameters": [ { "key": "difficulty", "value": "normal" } ],
+      "seed": 42,
+      "scenario": "classic"
+    }
+  }
+}
+```
+
+### Démarrer / Arrêter / Annuler une simulation
+ 
+Fonctionnel : contrôle le cycle de vie d'une simulation. `startSimulation` passe le statut en `RUNNING` et peut lancer des traitements asynchrones; `stopSimulation` marque la fin et enregistre `endedAt`; `cancelSimulation` interrompt et positionne la simulation en `CANCELLED`. Ces mutations ont des effets secondaires (notifications, arrêt des jobs en cours).
+
+```graphql
+mutation StartSim($id: ID!) {
+  startSimulation(id: $id) { id status startedAt }
+}
+
+mutation Stop($id: ID!) {
+  stopSimulation(id: $id) { id status endedAt }
+}
+
+mutation Cancel($id: ID!) {
+  cancelSimulation(id: $id) { id status }
+}
+```
+
+Variables (exemple):
+
+```json
+{ "id": "123" }
+```
+
+### Publier un metric
+ 
+Fonctionnel : enregistre une métrique liée à une simulation et notifie les abonnés (subscriptions). Sert à enrichir l'historique et à alimenter les vues temps réel (graphiques, tableaux de bord).
+
+```graphql
+mutation PublishMetric($simId: ID!, $metric: MetricInput!) {
+  publishMetric(simulationId: $simId, metric: $metric) {
+    name value timestamp
+  }
+}
+```
+
+Variables:
+
+```json
+{
+  "simId": "123",
+  "metric": { "name": "score", "value": 42.0 }
+}
+```
+
+### Mettre à jour dashboard / ajouter widget / supprimer widget
+ 
+Fonctionnel : mutations de gestion du dashboard — mise à jour des métadonnées, ajout/suppression de widgets. Ces opérations modifient la représentation persistée et peuvent invalider des caches, déclencher des recalculs ou notifier les clients connectés.
+
+```graphql
+mutation UpdateDashboard($input: UpdateDashboardInput!) {
+  updateDashboard(input: $input) { id name }
+}
+
+mutation AddWidget($dashboardId: ID!, $input: WidgetInput!) {
+  addWidget(dashboardId: $dashboardId, input: $input) { id title }
+}
+
+mutation RemoveWidget($id: ID!) {
+  removeWidget(id: $id)
+}
+```
+
+### Récupérer metrics d'une simulation
+ 
+Fonctionnel : retourne l'historique des métriques pour une simulation donnée, filtrable par date (`since`) afin d'alimenter des graphiques ou des analyses temporelles sans récupérer tout l'historique.
+
+```graphql
+query Metrics($simulationId: ID!, $since: DateTime) {
+  metrics(simulationId: $simulationId, since: $since) {
+    name value timestamp
+  }
+}
+```
+
+Variables:
+
+```json
+{ "simulationId": "123", "since": "2026-04-01T00:00:00Z" }
+```
+
+### Subscriptions — progression & fin de simulation
+ 
+Fonctionnel : ouvre un flux temps réel (WebSocket) pour recevoir des événements émis par le moteur de simulation (progression, messages d'état, métriques finales). Nécessite côté client une connexion `graphql-ws` et permet d'afficher des mises à jour live sans polling.
+
+```graphql
+subscription OnProgress($id: ID!) {
+  simulationProgress(simulationId: $id) {
+    simulationId progress message timestamp
+  }
+}
+
+subscription OnCompleted($id: ID!) {
+  simulationCompleted(simulationId: $id) {
+    metric value timestamp
+    simulation { id name status }
+  }
+}
+```
+
+Variables:
+
+```json
+{ "id": "123" }
+```
+
+> Nécessite WebSocket / `graphql-ws` (GraphiQL configuration).
+
+### Subscriptions additionnelles
+ 
+Fonctionnel : abonnements ciblés (métriques, dashboards) pour propager en temps réel les modifications pertinentes à l'UI (ex: un widget se met à jour quand son dashboard change).
+
+```graphql
+subscription OnMetric($id: ID!) { metricUpdated(simulationId: $id) { name value timestamp } }
+
+subscription OnDashboard($id: ID!) { dashboardUpdated(dashboardId: $id) { id name } }
+```
+
+Variables:
+
+```json
+{ "id": "dash-1" }
+```
+
+### Exemples utilitaires (fragments)
+ 
+Fonctionnel : fragments réutilisables côté client pour garantir la cohérence des sélections de champs et éviter la duplication dans plusieurs requêtes.
+
+```graphql
+query($id: ID!) {
+  simulation(id: $id) { ...SimFields }
+}
+
+fragment SimFields on Simulation { id name status progress results { metric value } }
+```
+
+Variables:
+
+```json
+{ "id": "123" }
+```
+
+### Requête via GET (encodée URL)
+
+GET `/graphql?query={simulation(id:"123"){id,name,status}}`
+
+---
+
+### DataLoader (optimisation widgets)
+
+Voir `widgetsByDashboard` enregistré en Java dans la config — utile pour `dashboards { widgets { ... } }`.
+
+---

@@ -1,7 +1,3 @@
-# Schema GraphQL pour Dashboard & Simulation
-# Emplacement : back/src/main/resources/graphql/
-# - Spring GraphQL charge automatiquement les fichiers `*.graphqls` présents ici.
-# - Scalars non-standards (DateTime, JSON) doivent être enregistrés côté Java (voir README ci-dessous).
 
 scalar DateTime
 scalar JSON
@@ -68,6 +64,7 @@ type SimulationResult {
   metric: String!
   value: Float!
   timestamp: DateTime!
+  simulation: Simulation
 }
 
 type Metric {
@@ -186,5 +183,3 @@ type Subscription {
   metricUpdated(simulationId: ID!): Metric!
   dashboardUpdated(dashboardId: ID!): Dashboard!
 }
-
-# Fin du schéma

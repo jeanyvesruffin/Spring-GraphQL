@@ -6,6 +6,8 @@ applyTo:
   - "front/**"
 ---
 
+Always respond and explain your reasoning in French.
+
 # Spring-GraphQL — Agent Instructions
 
 Short summary: this repository contains a Spring Boot GraphQL backend and an Angular frontend. Prefer small, reviewable changes and link to existing docs rather than duplicating them.
